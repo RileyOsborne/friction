@@ -15,6 +15,7 @@ class PlayerAnswer extends Model
         'round_id',
         'player_id',
         'answer_id',
+        'input_text',
         'points_awarded',
         'was_doubled',
         'answer_order',

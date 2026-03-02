@@ -1,5 +1,26 @@
 <x-layouts.presentation title="Presentation">
-    <div id="presentation-container" class="min-h-screen flex items-center justify-center">
+    @php
+        /**
+         * Helper: Calculate contrast color for text (black or white)
+         * PHP implementation for use inside Blade @php blocks
+         */
+        if (!function_exists('getContrastColor')) {
+            function getContrastColor($hexcolor) {
+                if (!$hexcolor) return 'white';
+                $hexcolor = str_replace('#', '', $hexcolor);
+                if (strlen($hexcolor) === 3) {
+                    $hexcolor = $hexcolor[0] . $hexcolor[0] . $hexcolor[1] . $hexcolor[1] . $hexcolor[2] . $hexcolor[2];
+                }
+                $r = hexdec(substr($hexcolor, 0, 2));
+                $g = hexdec(substr($hexcolor, 2, 2));
+                $b = hexdec(substr($hexcolor, 4, 2));
+                $yiq = (($r * 299) + ($g * 587) + ($b * 114)) / 1000;
+                return ($yiq >= 128) ? 'black' : 'white';
+            }
+        }
+    @endphp
+
+    <div id="presentation-container" class="min-h-screen flex flex-col items-center justify-center py-16 px-4">
         <!-- Rules Slide -->
         <div id="slide-rules" class="hidden w-full max-w-5xl mx-auto px-8">
             <div class="animate-fade-in">
@@ -37,88 +58,92 @@
         </div>
 
         <!-- Intro Slide -->
-        <div id="slide-intro" class="hidden w-full max-w-4xl mx-auto px-8 text-center">
+        <div id="slide-intro" class="hidden w-full max-w-5xl mx-auto px-8 text-center">
             <div class="animate-scale-in">
-                <p id="round-number" class="text-2xl text-slate-400 mb-4">Round 1</p>
-                <h1 id="category-title" class="text-6xl md:text-7xl font-black mb-6">Category Title</h1>
-                <p id="category-description" class="text-2xl text-slate-400 max-w-2xl mx-auto"></p>
+                <p id="round-number" class="text-5xl font-black text-white/30 uppercase tracking-[0.6em] mb-8">Round 1</p>
+                <h1 id="category-title" class="text-8xl md:text-9xl font-black mb-10 leading-tight tracking-tight">Category Title</h1>
+                <p id="category-description" class="text-4xl text-slate-400 max-w-3xl mx-auto leading-relaxed italic"></p>
             </div>
         </div>
 
         <!-- Collecting Slide (players are giving answers) -->
-        <div id="slide-collecting" class="hidden w-full max-w-5xl mx-auto px-8">
+        <div id="slide-collecting" class="hidden w-full max-w-7xl mx-auto px-8">
             <div class="animate-fade-in">
-                <div class="text-center mb-8">
-                    <p class="text-2xl text-slate-400 mb-4">Round <span id="collecting-round">1</span></p>
-                    <h1 id="collecting-category" class="text-5xl md:text-6xl font-black mb-4">Category Title</h1>
+                <div class="text-center mb-12">
+                    <p class="text-4xl font-black text-white/40 uppercase tracking-[0.5em] mb-6">Round <span id="collecting-round">1</span></p>
+                    <h1 id="collecting-category" class="text-7xl md:text-8xl font-black mb-8 leading-tight">Category Title</h1>
 
                     <!-- Current Turn Display with Timer -->
-                    <div id="current-turn-display" class="hidden my-6">
+                    <div id="current-turn-display" class="hidden my-10">
                         <!-- Countdown Timer (first player - 30 second thinking time) -->
                         <div id="countdown-timer" class="hidden">
-                            <div class="inline-flex items-center gap-4 bg-yellow-900/30 border border-yellow-600 rounded-2xl px-8 py-4">
-                                <span class="text-yellow-400 text-2xl">⏱️ Think!</span>
-                                <span id="countdown-display" class="text-6xl font-mono font-black text-yellow-400">30</span>
+                            <div class="inline-flex items-center gap-6 bg-yellow-900/30 border-2 border-yellow-600 rounded-3xl px-12 py-6 shadow-2xl">
+                                <span class="text-yellow-400 text-4xl font-bold">⏱️ THINK!</span>
+                                <span id="countdown-display" class="text-8xl font-mono font-black text-yellow-400">30</span>
                             </div>
-                            <p class="text-slate-400 mt-4">
-                                <span id="countdown-player-name" class="font-bold text-white">Player</span>
-                                <span class="text-slate-400">answers first</span>
+                            <p class="text-3xl text-slate-400 mt-8">
+                                <span id="countdown-player-name" class="font-black text-white text-4xl">Player</span>
+                                <span class="text-slate-400 uppercase tracking-widest ml-2">answers first</span>
                             </p>
                         </div>
 
                         <!-- Countup Timer (subsequent players - social pressure) -->
                         <div id="countup-timer" class="hidden">
-                            <p class="text-3xl mb-4">
-                                <span id="countup-player-name" class="font-bold" style="color: white">Player</span>
-                                <span class="text-slate-400">'s turn</span>
+                            <p class="text-5xl mb-8">
+                                <span id="countup-player-name" class="font-black text-6xl" style="color: white">Player</span>
+                                <span class="text-slate-400 uppercase tracking-widest ml-4">is up!</span>
                             </p>
-                            <div class="inline-flex items-center gap-3 bg-slate-800 border border-slate-600 rounded-xl px-6 py-3">
-                                <span class="text-slate-400">Waiting:</span>
-                                <span id="countup-display" class="text-4xl font-mono font-bold text-red-400">0s</span>
+                            <div class="inline-flex items-center gap-4 bg-slate-800 border-2 border-slate-600 rounded-2xl px-10 py-5 shadow-xl">
+                                <span class="text-slate-400 text-2xl uppercase tracking-tighter">Waiting:</span>
+                                <span id="countup-display" class="text-6xl font-mono font-black text-red-500">0s</span>
                             </div>
                         </div>
 
                         <!-- All Answered -->
-                        <div id="all-answered" class="hidden">
-                            <p class="text-3xl text-green-400 font-bold">All answers collected!</p>
+                        <div id="all-answered" class="hidden scale-125">
+                            <p class="text-6xl text-green-400 font-black tracking-tight drop-shadow-lg">All answers collected!</p>
                         </div>
                     </div>
 
                     <!-- Turn Order -->
-                    <div id="turn-order" class="hidden my-6">
-                        <p class="text-slate-400 mb-3">Answer Order</p>
-                        <div id="turn-order-players" class="flex flex-wrap justify-center gap-3">
+                    <div id="turn-order" class="hidden my-8">
+                        <p class="text-slate-500 uppercase tracking-[0.3em] font-bold mb-4">Answer Order</p>
+                        <div id="turn-order-players" class="flex flex-wrap justify-center gap-4">
                             <!-- Populated by JS -->
                         </div>
                     </div>
 
-                    <p id="collecting-prompt" class="text-2xl text-blue-400">Give your answers now!</p>
+                    <p id="collecting-prompt" class="text-3xl text-blue-400 font-bold animate-pulse">Give your answers now!</p>
                 </div>
 
                 <!-- Collected Answers Grid -->
-                <div id="collected-answers" class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
+                <div id="collected-answers" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 mt-12">
                     <!-- Populated by JS -->
                 </div>
             </div>
         </div>
 
         <!-- Reveal Slide (single page, answers appear one by one) -->
-        <div id="slide-reveal" class="hidden w-full max-w-6xl mx-auto px-8">
+        <div id="slide-reveal" class="hidden w-full max-w-[105rem] mx-auto px-12">
             <div class="animate-fade-in">
                 <div class="text-center mb-8">
-                    <p class="text-xl text-slate-400">Round <span id="reveal-round">1</span></p>
-                    <h2 id="reveal-category" class="text-4xl font-bold">Category Title</h2>
+                    <p class="text-4xl font-black text-white/30 uppercase tracking-[0.6em] mb-2">Round <span id="reveal-round">1</span></p>
+                    <h2 id="reveal-category" class="text-7xl md:text-8xl font-black leading-none tracking-tight">Category Title</h2>
                 </div>
 
                 <!-- Top 10 Grid -->
-                <div id="reveal-top10" class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
+                <div id="reveal-top10" class="grid grid-cols-2 md:grid-cols-5 gap-8 mb-8">
                     <!-- Populated by JS -->
                 </div>
 
                 <!-- Friction Zone -->
                 <div id="friction-zone" class="hidden">
-                    <h3 class="text-2xl font-bold text-red-500 text-center mb-4">FRICTION ZONE</h3>
-                    <div id="reveal-friction" class="grid grid-cols-5 gap-4">
+                    <div class="flex items-center gap-12 mb-6 justify-center">
+                        <div class="h-1 flex-1 bg-gradient-to-r from-transparent to-red-600/30"></div>
+                        <h3 class="text-3xl font-black text-red-500 tracking-[0.4em]">FRICTION ZONE</h3>
+                        <div class="h-1 flex-1 bg-gradient-to-l from-transparent to-red-600/30"></div>
+                    </div>
+                    <div id="reveal-friction" class="grid grid-cols-2 md:grid-cols-5 gap-8">
                         <!-- Populated by JS -->
                     </div>
                 </div>
@@ -126,40 +151,40 @@
         </div>
 
         <!-- Scores Slide -->
-        <div id="slide-scores" class="hidden w-full max-w-4xl mx-auto px-8">
+        <div id="slide-scores" class="hidden w-full max-w-7xl mx-auto px-8 py-12">
             <div class="animate-fade-in text-center">
-                <h2 id="scores-title" class="text-4xl font-bold mb-8 text-slate-400">Round 1 Scores</h2>
-                <div id="scores-container" class="grid grid-cols-2 md:grid-cols-4 gap-6">
+                <h2 id="scores-title" class="text-5xl font-black mb-16 text-white/40 uppercase tracking-[0.4em]">Round Complete</h2>
+                <div id="scores-container" class="flex flex-wrap justify-center gap-10 items-stretch">
                     <!-- Scores populated by JS -->
                 </div>
             </div>
         </div>
 
         <!-- Game Over Slide -->
-        <div id="slide-gameover" class="hidden w-full max-w-4xl mx-auto px-8 text-center">
+        <div id="slide-gameover" class="hidden w-full max-w-7xl mx-auto px-8 py-12 text-center">
             <div class="animate-scale-in">
-                <h1 class="text-6xl font-black mb-12">Final Scores</h1>
-                <div id="final-scores-container" class="grid grid-cols-2 md:grid-cols-4 gap-6">
+                <h1 class="text-9xl font-black mb-20 tracking-tight">Final Standings</h1>
+                <div id="final-scores-container" class="flex flex-wrap justify-center gap-12 items-stretch">
                     <!-- Final scores populated by JS -->
                 </div>
             </div>
         </div>
 
         <!-- Lobby Slide (players joining before game starts) -->
-        <div id="slide-lobby" class="hidden w-full max-w-5xl mx-auto px-8">
-            <div class="animate-fade-in">
+        <div id="slide-lobby" class="hidden w-full max-w-[95rem] mx-auto px-8">
+            <div class="animate-fade-in text-center">
                 <!-- Title -->
-                <div class="text-center mb-8">
-                    <h1 class="text-8xl font-title mb-2">
+                <div class="text-center mb-16 text-white">
+                    <h1 class="text-[12rem] font-title mb-4 tracking-tighter leading-none">
                         <span class="text-white">FRIC</span><span class="text-red-500">TION</span>
                     </h1>
-                    <p class="text-2xl text-slate-400">Join the game!</p>
+                    <p class="text-5xl text-white/40 uppercase tracking-[0.5em] font-light">Join the game!</p>
                 </div>
 
-                <div class="grid md:grid-cols-2 gap-8">
+                <div class="grid md:grid-cols-2 gap-16 items-stretch text-left">
                     <!-- Join Info -->
                     <div class="text-center">
-                        <div class="bg-slate-800 rounded-2xl p-8 border border-slate-700">
+                        <div class="bg-slate-800/50 rounded-[3rem] p-12 border-2 border-slate-700 shadow-2xl h-full flex flex-col justify-center">
                             @php
                                 // Get the actual host from the request (works with both localhost and network IP)
                                 $baseUrl = request()->getSchemeAndHttpHost();
@@ -167,23 +192,23 @@
                                 $fullJoinUrl = $game->join_code ? $baseUrl . '/join/' . $game->join_code : null;
                             @endphp
 
-                            <p class="text-slate-400 mb-2">Go to</p>
-                            <p class="text-3xl text-blue-400 font-bold mb-6" id="lobby-join-url">{{ $joinUrl }}</p>
+                            <p class="text-slate-400 text-2xl mb-4 uppercase tracking-[0.2em]">Go to</p>
+                            <p class="text-5xl text-blue-400 font-black mb-12" id="lobby-join-url">{{ $joinUrl }}</p>
 
-                            <p class="text-slate-400 mb-2">Enter code</p>
-                            <p class="text-6xl font-mono font-black tracking-[0.2em] text-white mb-6" id="lobby-join-code">{{ $game->join_code ?? '------' }}</p>
+                            <p class="text-slate-400 text-2xl mb-4 uppercase tracking-[0.2em]">Enter code</p>
+                            <p class="text-9xl font-mono font-black tracking-[0.2em] text-white mb-12 drop-shadow-2xl" id="lobby-join-code">{{ $game->join_code ?? '------' }}</p>
 
-                            <p class="text-slate-500 text-sm mb-4">- or scan -</p>
+                            <p class="text-slate-500 text-xl mb-8 uppercase font-black tracking-tighter opacity-50">- or scan -</p>
 
                             <div class="flex justify-center">
-                                <div class="bg-white p-4 rounded-xl">
+                                <div class="bg-white p-8 rounded-[2.5rem] shadow-2xl transform transition hover:scale-105 duration-500">
                                     @if($fullJoinUrl)
-                                        <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data={{ urlencode($fullJoinUrl) }}"
+                                        <img src="https://api.qrserver.com/v1/create-qr-code/?size=300x300&data={{ urlencode($fullJoinUrl) }}"
                                              alt="QR Code"
-                                             class="w-44 h-44"
+                                             class="w-64 h-64"
                                              id="lobby-qr-code">
                                     @else
-                                        <div class="w-44 h-44 flex items-center justify-center text-slate-400" id="lobby-qr-placeholder">
+                                        <div class="w-64 h-64 flex items-center justify-center text-slate-400" id="lobby-qr-placeholder">
                                             QR Code
                                         </div>
                                     @endif
@@ -193,38 +218,40 @@
                     </div>
 
                     <!-- Players List -->
-                    <div>
-                        <div class="bg-slate-800 rounded-2xl p-8 border border-slate-700 h-full">
+                    <div class="h-full">
+                        <div class="bg-slate-800/50 rounded-[3rem] p-12 border-2 border-slate-700 shadow-2xl h-full flex flex-col">
                             @php
                                 $lobbyActivePlayers = $game->players->filter(fn($p) => $p->isActive());
                                 $lobbyConnectedCount = $lobbyActivePlayers->filter(fn($p) => $p->isConnected())->count();
                             @endphp
-                            <h2 class="text-2xl font-bold mb-6 flex items-center gap-3">
+                            <h2 class="text-5xl font-black mb-10 flex items-center gap-6">
                                 <span>Players</span>
-                                <span class="text-lg font-normal text-slate-400" id="lobby-player-count">({{ $lobbyConnectedCount }}/{{ $lobbyActivePlayers->count() }})</span>
+                                <span class="text-3xl font-bold text-white/20" id="lobby-player-count">{{ $lobbyConnectedCount }}/{{ $lobbyActivePlayers->count() }}</span>
                             </h2>
 
-                            <div id="lobby-players" class="space-y-3">
+                            <div id="lobby-players" class="space-y-6 flex-1 overflow-y-auto pr-2 custom-scrollbar">
                                 @php
                                     $activePlayers = $game->players->filter(fn($p) => $p->isActive())->sortBy('position');
                                 @endphp
                                 @forelse($activePlayers as $player)
-                                    <div class="flex items-center gap-4 bg-slate-900 rounded-xl px-5 py-4" data-player-id="{{ $player->id }}">
-                                        <div class="w-5 h-5 rounded-full" style="background-color: {{ $player->color }}"></div>
-                                        <span class="text-2xl font-bold">{{ $player->name }}</span>
-                                        <span class="ml-auto text-sm player-status">
-                                            <span class="text-green-400">{{ $player->isGmCreated() ? 'GM' : 'Connected' }}</span>
+                                    @php $contrast = getContrastColor($player->color); @endphp
+                                    <div class="flex items-center gap-8 bg-slate-900/80 rounded-[1.5rem] px-8 py-6 border border-white/5 shadow-xl" data-player-id="{{ $player->id }}">
+                                        <div class="w-8 h-8 rounded-full shadow-inner border-2 border-white/10" style="background-color: {{ $player->color }}"></div>
+                                        <span class="text-4xl font-black tracking-tight" style="color: {{ $player->color }}">{{ $player->name }}</span>
+                                        <span class="ml-auto px-5 py-2 rounded-xl text-sm font-black uppercase tracking-[0.2em] border" 
+                                              style="background-color: {{ $player->color }}; color: {{ $contrast }}; border-color: white/10">
+                                            {{ $player->isGmCreated() ? 'GM' : ($player->isConnected() ? 'Joined' : 'Wait') }}
                                         </span>
                                     </div>
                                 @empty
-                                    <p class="text-slate-500 text-center py-8">Waiting for players to join...</p>
+                                    <p class="text-slate-500 text-center py-12 text-3xl italic font-light">Waiting for players to join...</p>
                                 @endforelse
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <p class="text-center text-slate-500 mt-8 text-xl">Game Master will start when everyone's ready</p>
+                <p class="text-center text-white/40 mt-24 mb-16 text-3xl font-black italic tracking-tight uppercase">Game Master will start when everyone's ready</p>
             </div>
         </div>
     </div>
@@ -312,6 +339,20 @@
 
         // Initialize BroadcastChannel
         const channel = new BroadcastChannel('friction-game-' + gameId);
+
+        // Helper: Calculate contrast color for text (black or white)
+        function getContrastColor(hexcolor) {
+            if (!hexcolor) return 'white';
+            // If it's a shorthand hex like #333, expand it to #333333
+            if (hexcolor.length === 4) {
+                hexcolor = '#' + hexcolor[1] + hexcolor[1] + hexcolor[2] + hexcolor[2] + hexcolor[3] + hexcolor[3];
+            }
+            var r = parseInt(hexcolor.substr(1, 2), 16);
+            var g = parseInt(hexcolor.substr(3, 2), 16);
+            var b = parseInt(hexcolor.substr(5, 2), 16);
+            var yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
+            return (yiq >= 128) ? 'black' : 'white';
+        }
 
         // DOM elements
         const slides = {
@@ -538,21 +579,26 @@
                 var collected = answerMap[player.id];
                 var isCurrent = player.id === currentTurnPlayerId;
                 var isGmControlled = player.is_gm_controlled && !player.is_gm_created;
-                var gmBadge = isGmControlled ? '<span class="text-xs text-yellow-400 ml-1">(GM)</span>' : '';
+                var gmBadge = isGmControlled ? '<span class="text-xs text-yellow-400 ml-1 opacity-70">(GM)</span>' : '';
+                var contrastColor = getContrastColor(player.color);
 
                 if (collected) {
-                    return '<div class="bg-slate-800 rounded-xl p-4 text-center ring-2 ring-green-500/50">' +
-                        '<div class="text-sm text-slate-500 mb-1">#' + (index + 1) + '</div>' +
-                        '<div class="text-xl font-bold mb-2" style="color: ' + player.color + '">' + player.name + gmBadge + '</div>' +
-                        '<div class="text-2xl font-bold text-white">' + collected.answerText + '</div>' +
-                        '<div class="text-green-400 mt-1">✓</div>' +
+                    return '<div class="bg-slate-800 rounded-2xl p-6 text-center border-b-4 border-green-500 shadow-xl scale-105 transition-all">' +
+                        '<div class="text-xs uppercase tracking-widest text-slate-500 mb-2 font-bold">Answer #' + (index + 1) + '</div>' +
+                        '<div class="text-2xl font-black mb-3 px-3 py-1 rounded-lg inline-block" style="background-color: ' + player.color + '; color: ' + contrastColor + '">' + 
+                            player.name + gmBadge + 
+                        '</div>' +
+                        '<div class="text-3xl font-black text-white leading-tight break-words">' + collected.answerText + '</div>' +
+                        '<div class="mt-4 flex justify-center"><div class="bg-green-500/20 text-green-400 px-3 py-1 rounded-full text-sm font-bold border border-green-500/30">SUBMITTED ✓</div></div>' +
                     '</div>';
                 } else {
-                    var borderClass = isCurrent ? 'ring-2 ring-blue-500 border-blue-500' : '';
-                    return '<div class="bg-slate-800/50 rounded-xl p-4 text-center ' + (isCurrent ? '' : 'opacity-50') + ' ' + borderClass + '">' +
-                        '<div class="text-sm text-slate-500 mb-1">#' + (index + 1) + '</div>' +
-                        '<div class="text-xl font-bold mb-2" style="color: ' + player.color + '">' + player.name + gmBadge + '</div>' +
-                        '<div class="text-2xl text-slate-500">' + (isCurrent ? '...' : '...') + '</div>' +
+                    var currentClasses = isCurrent ? 'bg-slate-700 ring-4 ring-blue-500 border-blue-500 scale-110 z-10 animate-pulse-slow' : 'bg-slate-800/40 opacity-40';
+                    return '<div class="rounded-2xl p-6 text-center border-b-4 border-slate-600 transition-all ' + currentClasses + '">' +
+                        '<div class="text-xs uppercase tracking-widest text-slate-500 mb-2 font-bold">Answer #' + (index + 1) + '</div>' +
+                        '<div class="text-2xl font-black mb-3 px-3 py-1 rounded-lg inline-block" style="background-color: ' + player.color + '; color: ' + contrastColor + '">' + 
+                            player.name + gmBadge + 
+                        '</div>' +
+                        '<div class="text-3xl font-black text-slate-500 italic">' + (isCurrent ? 'THINKING...' : 'WAITING...') + '</div>' +
                     '</div>';
                 }
             }).join('');
@@ -591,23 +637,25 @@
                 if (answer) {
                     var playersHtml = '';
                     if (isRevealed && revealed && revealed.players && revealed.players.length > 0) {
-                        playersHtml = '<div class="mt-2 flex flex-wrap gap-1 justify-center">';
+                        playersHtml = '<div class="mt-4 flex flex-wrap gap-2 justify-center">';
                         revealed.players.forEach(function(p) {
-                            playersHtml += '<span class="text-xs px-2 py-0.5 rounded-full" style="background-color: ' + p.color + '40; color: ' + p.color + '">' + p.name + (p.doubled ? ' ' + doubleMultiplier + 'x' : '') + '</span>';
+                            var contrast = getContrastColor(p.color);
+                            playersHtml += '<span class="text-sm font-black px-4 py-1.5 rounded-xl shadow-lg border-2 border-white/10" style="background-color: ' + p.color + '; color: ' + contrast + '">' + p.name + (p.doubled ? ' ' + doubleMultiplier + 'x' : '') + '</span>';
                         });
                         playersHtml += '</div>';
                     }
 
-                    top10Html += '<div class="bg-slate-800 rounded-xl p-4 text-center ' + (isRevealed ? '' : 'opacity-30') + '">';
-                    top10Html += '<div class="text-green-400 font-bold text-lg">#' + i + '</div>';
+                    var cardClasses = isRevealed ? 'bg-slate-800 border-green-500/50 border-2 shadow-2xl scale-105 z-10' : 'bg-slate-800/40 border-slate-700/50 scale-100';
+                    top10Html += '<div class="rounded-3xl p-8 text-center transition-all duration-500 border-b-8 ' + cardClasses + '">';
+                    top10Html += '<div class="' + (isRevealed ? 'text-green-400' : 'text-green-400/30') + ' font-black text-2xl mb-1">#' + i + '</div>';
                     if (isRevealed) {
-                        top10Html += '<div class="text-xl font-bold mt-1">' + answer.text + '</div>';
+                        top10Html += '<div class="text-3xl font-black text-white leading-tight mb-1">' + answer.text + '</div>';
                         if (answer.stat) {
-                            top10Html += '<div class="text-sm text-slate-400">' + answer.stat + '</div>';
+                            top10Html += '<div class="text-lg text-slate-400 font-bold mb-2">' + answer.stat + '</div>';
                         }
-                        top10Html += '<div class="text-green-400 font-bold mt-1">+' + answer.points + '</div>';
+                        top10Html += '<div class="text-2xl font-black text-green-400">+' + answer.points + ' PTS</div>';
                     } else {
-                        top10Html += '<div class="text-3xl font-bold mt-2 text-slate-500">?</div>';
+                        top10Html += '<div class="text-6xl font-black py-4 text-white/5">?</div>';
                     }
                     top10Html += playersHtml;
                     top10Html += '</div>';
@@ -630,23 +678,25 @@
                     if (answer) {
                         var playersHtml = '';
                         if (isRevealed && revealed && revealed.players && revealed.players.length > 0) {
-                            playersHtml = '<div class="mt-2 flex flex-wrap gap-1 justify-center">';
+                            playersHtml = '<div class="mt-4 flex flex-wrap gap-2 justify-center">';
                             revealed.players.forEach(function(p) {
-                                playersHtml += '<span class="text-xs px-2 py-0.5 rounded-full" style="background-color: ' + p.color + '40; color: ' + p.color + '">' + p.name + (p.doubled ? ' ' + doubleMultiplier + 'x' : '') + '</span>';
+                                var contrast = getContrastColor(p.color);
+                                playersHtml += '<span class="text-sm font-black px-4 py-1.5 rounded-xl shadow-lg border-2 border-white/10" style="background-color: ' + p.color + '; color: ' + contrast + '">' + p.name + (p.doubled ? ' ' + doubleMultiplier + 'x' : '') + '</span>';
                             });
                             playersHtml += '</div>';
                         }
 
-                        frictionHtml += '<div class="bg-red-900/50 border border-red-500/50 rounded-xl p-4 text-center ' + (isRevealed ? '' : 'opacity-30') + '">';
-                        frictionHtml += '<div class="text-red-400 font-bold text-lg">#' + i + '</div>';
+                        var cardClasses = isRevealed ? 'bg-red-950/40 border-red-500 border-2 shadow-2xl scale-105 z-10' : 'bg-red-950/20 border-red-900/30 scale-100';
+                        frictionHtml += '<div class="rounded-3xl p-8 text-center transition-all duration-500 border-b-8 ' + cardClasses + '">';
+                        frictionHtml += '<div class="' + (isRevealed ? 'text-red-500' : 'text-red-500/30') + ' font-black text-2xl mb-1">#' + i + '</div>';
                         if (isRevealed) {
-                            frictionHtml += '<div class="text-xl font-bold mt-1">' + answer.text + '</div>';
+                            frictionHtml += '<div class="text-3xl font-black text-white leading-tight mb-1">' + answer.text + '</div>';
                             if (answer.stat) {
-                                frictionHtml += '<div class="text-sm text-slate-400">' + answer.stat + '</div>';
+                                frictionHtml += '<div class="text-lg text-slate-400 font-bold mb-2">' + answer.stat + '</div>';
                             }
-                            frictionHtml += '<div class="text-red-400 font-bold mt-1">' + answer.points + '</div>';
+                            frictionHtml += '<div class="text-2xl font-black text-red-500">' + answer.points + ' PTS</div>';
                         } else {
-                            frictionHtml += '<div class="text-3xl font-bold mt-2 text-slate-500">?</div>';
+                            frictionHtml += '<div class="text-6xl font-black py-4 text-white/5">?</div>';
                         }
                         frictionHtml += playersHtml;
                         frictionHtml += '</div>';
@@ -662,12 +712,18 @@
             document.getElementById('scores-title').textContent = title;
             var container = document.getElementById('scores-container');
             var sorted = playerList.slice().sort(function(a, b) { return b.total_score - a.total_score; });
+            
             container.innerHTML = sorted.map(function(p, i) {
-                return '<div class="bg-slate-800 rounded-2xl p-6 ' + (i === 0 ? 'ring-4 ring-yellow-500' : '') + '">' +
-                    '<div class="text-2xl font-bold" style="color: ' + p.color + '">' +
-                        (i === 0 ? '🏆 ' : '') + p.name +
+                var contrast = getContrastColor(p.color);
+                var isLeader = i === 0;
+                var cardClasses = isLeader ? 'bg-slate-800 ring-4 ring-yellow-500 scale-110 z-10' : 'bg-slate-800/60 scale-100';
+                
+                return '<div class="rounded-[2.5rem] p-12 flex flex-col items-center justify-center transition-all shadow-2xl border-b-8 border-slate-900 min-w-[320px] ' + cardClasses + '">' +
+                    '<div class="text-3xl font-black mb-6 px-8 py-3 rounded-2xl shadow-lg" style="background-color: ' + p.color + '; color: ' + contrast + '">' +
+                        (isLeader ? '🏆 ' : '') + p.name +
                     '</div>' +
-                    '<div class="text-5xl font-black mt-2">' + p.total_score + '</div>' +
+                    '<div class="text-[10rem] font-black tracking-tighter leading-none mb-4">' + p.total_score + '</div>' +
+                    '<div class="text-slate-500 text-xl font-bold uppercase tracking-[0.2em]">Total Points</div>' +
                 '</div>';
             }).join('');
         }
@@ -675,12 +731,20 @@
         function renderFinalScores(playerList) {
             var container = document.getElementById('final-scores-container');
             var sorted = playerList.slice().sort(function(a, b) { return b.total_score - a.total_score; });
+            
             container.innerHTML = sorted.map(function(p, i) {
+                var contrast = getContrastColor(p.color);
                 var place = i === 0 ? '1st' : i === 1 ? '2nd' : i === 2 ? '3rd' : (i+1)+'th';
-                return '<div class="bg-slate-800 rounded-2xl p-8 ' + (i === 0 ? 'ring-4 ring-yellow-500' : '') + '">' +
-                    '<div class="text-3xl mb-2">' + place + '</div>' +
-                    '<div class="text-2xl font-bold" style="color: ' + p.color + '">' + p.name + '</div>' +
-                    '<div class="text-6xl font-black mt-2">' + p.total_score + '</div>' +
+                var isFirst = i === 0;
+                var cardClasses = isFirst ? 'bg-slate-800 ring-8 ring-yellow-500 scale-110 z-10' : 'bg-slate-800/40';
+                
+                return '<div class="rounded-[3.5rem] p-16 flex flex-col items-center justify-center transition-all shadow-2xl border-b-8 border-slate-950 min-w-[400px] ' + cardClasses + '">' +
+                    '<div class="text-5xl font-black text-white/30 uppercase mb-6 tracking-widest">' + place + '</div>' +
+                    '<div class="text-4xl font-black mb-8 px-10 py-4 rounded-[1.5rem] shadow-xl" style="background-color: ' + p.color + '; color: ' + contrast + '">' +
+                        p.name +
+                    '</div>' +
+                    '<div class="text-[12rem] font-black tracking-tighter leading-none mb-4">' + p.total_score + '</div>' +
+                    '<div class="text-3xl font-bold text-slate-500 uppercase tracking-[0.3em]">Final Score</div>' +
                 '</div>';
             }).join('');
         }
@@ -694,28 +758,33 @@
             var connectedCount = playerList.filter(function(p) { return p.is_connected; }).length;
 
             if (countEl) {
-                countEl.textContent = '(' + connectedCount + '/' + playerList.length + ')';
+                countEl.textContent = connectedCount + '/' + playerList.length;
             }
 
             if (playerList.length === 0) {
-                container.innerHTML = '<p class="text-slate-500 text-center py-8">Waiting for players to join...</p>';
+                container.innerHTML = '<p class="text-slate-500 text-center py-12 text-3xl italic font-light">Waiting for players to join...</p>';
                 return;
             }
 
             container.innerHTML = playerList.map(function(p) {
                 var statusText;
                 if (p.is_gm_created) {
-                    statusText = '<span class="text-green-400 text-sm">GM</span>';
+                    statusText = 'GM';
                 } else if (p.is_connected) {
-                    statusText = '<span class="text-green-400 text-sm">Connected</span>';
+                    statusText = 'Joined';
                 } else {
-                    statusText = '<span class="text-yellow-400 text-sm">Disconnected (GM)</span>';
+                    statusText = 'Wait';
                 }
-                var opacityClass = p.is_connected || p.is_gm_created ? '' : 'opacity-60';
-                return '<div class="flex items-center gap-4 bg-slate-900 rounded-xl px-5 py-4 ' + opacityClass + '">' +
-                    '<div class="w-5 h-5 rounded-full" style="background-color: ' + p.color + '"></div>' +
-                    '<span class="text-2xl font-bold">' + p.name + '</span>' +
-                    '<span class="ml-auto">' + statusText + '</span>' +
+                var contrast = getContrastColor(p.color);
+                var opacityClass = p.is_connected || p.is_gm_created ? '' : 'opacity-40';
+                
+                return '<div class="flex items-center gap-8 bg-slate-900/80 rounded-[1.5rem] px-8 py-6 border border-white/5 shadow-xl transition-all ' + opacityClass + '">' +
+                    '<div class="w-8 h-8 rounded-full shadow-inner border-2 border-white/10" style="background-color: ' + p.color + '"></div>' +
+                    '<span class="text-4xl font-black tracking-tight" style="color: ' + p.color + '">' + p.name + '</span>' +
+                    '<span class="ml-auto px-5 py-2 rounded-xl text-sm font-black uppercase tracking-[0.2em] border" ' +
+                          'style="background-color: ' + p.color + '; color: ' + contrast + '; border-color: white/10">' + 
+                        statusText + 
+                    '</span>' +
                 '</div>';
             }).join('');
         }

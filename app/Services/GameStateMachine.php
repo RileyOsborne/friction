@@ -154,9 +154,13 @@ class GameStateMachine
         if (!$round) return;
 
         $maxAnswers = $round->category->answers->count();
-        $newStatus = $maxAnswers > $this->game->top_answers_count ? RoundStatus::Friction : RoundStatus::Revealing;
+        $targetStatus = $maxAnswers > $this->game->top_answers_count ? RoundStatus::Friction : RoundStatus::Revealing;
 
-        $round->update(['current_slide' => $maxAnswers, 'status' => $newStatus->value]);
+        $round->update(['current_slide' => $maxAnswers]);
+        
+        if ($round->status !== $targetStatus->value) {
+            $this->transitionRound($round, $targetStatus);
+        }
 
         $this->broadcast();
     }
@@ -407,7 +411,7 @@ class GameStateMachine
                     'playerId' => $pa->player_id,
                     'playerName' => $pa->player->name,
                     'playerColor' => $pa->player->color,
-                    'answerText' => $pa->answer?->text ?? 'Not on list',
+                    'answerText' => $pa->input_text ?? ($pa->answer?->text ?? 'Not on list'),
                     'isOnList' => $pa->answer_id !== null,
                 ];
             }

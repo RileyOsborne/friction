@@ -44,7 +44,7 @@ new #[Layout('components.layouts.app')] #[Title('Rules')] class extends Componen
         <!-- Start Playing -->
         <div class="text-center pt-8">
             <a href="{{ route('games.create') }}"
-               class="inline-block bg-red-600 hover:bg-red-700 text-white px-8 py-4 rounded-xl text-xl font-bold transition">
+               class="inline-block bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-xl text-xl font-bold transition">
                 Start a Game
             </a>
         </div>

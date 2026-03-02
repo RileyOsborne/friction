@@ -40,7 +40,7 @@ new #[Layout('components.layouts.app')] #[Title('Create Game')] class extends Co
                            wire:model="name"
                            placeholder="Friday Game Night"
                            autofocus
-                           class="w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-red-500">
+                           class="w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500">
                     @error('name') <span class="text-red-400 text-sm">{{ $message }}</span> @enderror
                 </div>
 
@@ -55,7 +55,7 @@ new #[Layout('components.layouts.app')] #[Title('Create Game')] class extends Co
                     Cancel
                 </a>
                 <button type="submit"
-                        class="px-8 py-3 bg-red-600 hover:bg-red-700 rounded-lg font-semibold transition">
+                        class="px-8 py-3 bg-blue-600 hover:bg-blue-700 rounded-lg font-semibold transition">
                     Create Game
                 </button>
             </div>

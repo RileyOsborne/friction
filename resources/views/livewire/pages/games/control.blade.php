@@ -381,6 +381,7 @@ new #[Layout('components.layouts.app')] #[Title('Game Master Control')] class ex
             'round_id' => $this->currentRound->id,
             'player_id' => $playerId,
             'answer_id' => $answer?->id,
+            'input_text' => $answerText,
             'points_awarded' => $points,
             'was_doubled' => $wasDoubled,
         ]);

@@ -224,6 +224,74 @@ These assumptions may need revisiting for future features:
 - Designed for everyone in same room
 - Remote play would need different reveal timing
 
+## Button and Action Color Guide
+
+### Decision
+Use consistent color semantics across all buttons and actions to create clear visual language.
+
+### Color Roles
+
+| Purpose | Solid Button | Outline/Ghost | Inline Link |
+|---------|-------------|---------------|-------------|
+| **Primary Action** | `bg-blue-600 hover:bg-blue-700` | - | `text-blue-400 hover:text-blue-300` |
+| **Success/Go** | `bg-green-600 hover:bg-green-700` | - | `text-green-400 hover:text-green-300` |
+| **Feature/Special** | `bg-purple-600 hover:bg-purple-700` | - | `text-purple-400 hover:text-purple-300` |
+| **Secondary** | `bg-slate-700 hover:bg-slate-600` | - | `text-slate-400 hover:text-slate-300` |
+| **Destructive** | `bg-red-600 hover:bg-red-700` | `bg-red-600/20 text-red-400 border-red-600/50` | `text-red-400 hover:text-red-300` |
+
+### When to Use Each
+
+**Primary Action (Blue)**
+- Creating new items: "New Game", "New Category", "Add Player"
+- Form submissions: "Create", "Save", "Update"
+- Navigation to next step: "Continue Game"
+- Non-destructive confirmations: "Import", "Randomize All"
+
+**Success/Go (Green)**
+- Starting gameplay: "Start Game", "Play"
+- Proceeding in game flow: "Begin Round", "Reveal Scores"
+- Positive state changes
+
+**Feature/Special (Purple)**
+- Special modes: "Open Presentation"
+- Premium or highlighted features
+
+**Secondary (Slate)**
+- Cancel buttons in modals
+- Alternative options: "Import Starter Pack" (when showing as secondary choice)
+- Utility actions: "Randomize All" (small utility button)
+
+**Destructive (Red)**
+- Use **inline text** (`text-red-400`) for: Delete/Remove links in lists
+- Use **outline button** for: Destructive actions that aren't the primary page action (e.g., "Remove Starter Pack")
+- Use **solid button** for: Modal confirmation buttons ("Delete Game", "Reset")
+
+### Why Not Red for Create Actions?
+Red is strongly associated with danger/destruction in UI patterns. Using red for "New Game" creates cognitive dissonance. Blue provides a neutral, professional call-to-action that doesn't conflict with destructive action semantics.
+
+### Implementation Pattern
+```html
+<!-- Primary action button -->
+<button class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold transition">
+    + New Game
+</button>
+
+<!-- Destructive outline button (for secondary destructive actions) -->
+<button class="bg-red-600/20 hover:bg-red-600/30 text-red-400 border border-red-600/50 px-4 py-3 rounded-lg font-semibold transition">
+    Remove Starter Pack
+</button>
+
+<!-- Destructive solid button (for modal confirmations) -->
+<button class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium transition">
+    Delete Game
+</button>
+
+<!-- Inline destructive link -->
+<button class="text-red-400 hover:text-red-300 font-medium">
+    Delete
+</button>
+```
+
 ## Future Considerations
 
 ### Remote GM Play

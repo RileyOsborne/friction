@@ -47,7 +47,7 @@ new #[Layout('components.layouts.app')] #[Title('Edit Game')] class extends Comp
                     <label class="block text-sm font-medium text-slate-300 mb-2">Game Name</label>
                     <input type="text"
                            wire:model="name"
-                           class="w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-red-500">
+                           class="w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
                     @error('name') <span class="text-red-400 text-sm">{{ $message }}</span> @enderror
                 </div>
 
@@ -64,7 +64,7 @@ new #[Layout('components.layouts.app')] #[Title('Edit Game')] class extends Comp
                     Cancel
                 </a>
                 <button type="submit"
-                        class="px-8 py-3 bg-red-600 hover:bg-red-700 rounded-lg font-semibold transition">
+                        class="px-8 py-3 bg-blue-600 hover:bg-blue-700 rounded-lg font-semibold transition">
                     Save Changes
                 </button>
             </div>

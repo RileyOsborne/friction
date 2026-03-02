@@ -37,6 +37,9 @@ new #[Layout('components.layouts.app')] #[Title('Game Setup')] class extends Com
     // Randomize confirmation modal
     public bool $showRandomizeModal = false;
 
+    // Reset game confirmation modal
+    public bool $showResetModal = false;
+
     public function mount(Game $game): void
     {
         $this->game = $game->load(['players', 'rounds.category']);
@@ -391,6 +394,16 @@ new #[Layout('components.layouts.app')] #[Title('Game Setup')] class extends Com
         $this->showRandomizeModal = false;
     }
 
+    public function confirmReset(): void
+    {
+        $this->showResetModal = true;
+    }
+
+    public function closeResetModal(): void
+    {
+        $this->showResetModal = false;
+    }
+
     public function randomizeAllCategories(): void
     {
         $this->showRandomizeModal = false;
@@ -495,6 +508,8 @@ new #[Layout('components.layouts.app')] #[Title('Game Setup')] class extends Com
 
     public function resetGame(): void
     {
+        $this->showResetModal = false;
+
         // Reset player scores and double usage
         $this->game->players()->update([
             'total_score' => 0,
@@ -681,7 +696,16 @@ new #[Layout('components.layouts.app')] #[Title('Game Setup')] class extends Com
                         <input type="text"
                                wire:model.live.debounce.200ms="searchQuery"
                                placeholder="Search categories..."
-                               class="w-full bg-slate-900 border border-slate-600 rounded-lg pl-10 pr-4 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                               class="w-full bg-slate-900 border border-slate-600 rounded-lg pl-10 pr-10 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        @if($searchQuery || $topicFilter)
+                            <button wire:click="clearFilters" 
+                                    class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition"
+                                    title="Clear all filters">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                </svg>
+                            </button>
+                        @endif
                     </div>
                 </div>
 
@@ -787,9 +811,8 @@ new #[Layout('components.layouts.app')] #[Title('Game Setup')] class extends Com
                        class="inline-block bg-blue-600 hover:bg-blue-700 text-white px-12 py-4 rounded-xl text-xl font-bold transition">
                         Continue Game
                     </a>
-                    <button x-data
-                            x-on:click="if (confirm('Are you sure you want to reset this game? All scores and progress will be cleared.')) { $wire.resetGame() }"
-                            class="bg-red-600 hover:bg-red-700 text-white px-8 py-4 rounded-xl text-xl font-bold transition">
+                    <button wire:click="confirmReset"
+                            class="bg-red-600/20 hover:bg-red-600/30 text-red-400 border border-red-600/50 px-8 py-4 rounded-xl text-xl font-bold transition">
                         Reset Game
                     </button>
                 </div>
@@ -980,6 +1003,42 @@ new #[Layout('components.layouts.app')] #[Title('Game Setup')] class extends Com
                             <button wire:click="randomizeAllCategories"
                                     class="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg font-medium transition">
                                 Randomize All
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    <!-- Reset Game Confirmation Modal -->
+    @if($showResetModal)
+        <div class="fixed inset-0 z-50 overflow-y-auto" aria-modal="true">
+            <div class="flex min-h-screen items-center justify-center p-4">
+                <div class="fixed inset-0 bg-black/70 transition-opacity" wire:click="closeResetModal"></div>
+
+                <div class="relative bg-slate-800 rounded-xl shadow-xl w-full max-w-md border border-slate-700">
+                    <div class="px-6 py-4 border-b border-slate-700 flex justify-between items-center">
+                        <h3 class="text-lg font-bold text-red-400">Reset Game</h3>
+                        <button wire:click="closeResetModal" class="text-slate-400 hover:text-white text-2xl">&times;</button>
+                    </div>
+
+                    <div class="p-6">
+                        <p class="text-slate-300 mb-2">
+                            Are you sure you want to reset this game?
+                        </p>
+                        <p class="text-slate-400 text-sm mb-6">
+                            All scores and progress will be cleared. This cannot be undone.
+                        </p>
+
+                        <div class="flex justify-end gap-3">
+                            <button wire:click="closeResetModal"
+                                    class="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg font-medium transition">
+                                Cancel
+                            </button>
+                            <button wire:click="resetGame"
+                                    class="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg font-medium transition">
+                                Reset Game
                             </button>
                         </div>
                     </div>

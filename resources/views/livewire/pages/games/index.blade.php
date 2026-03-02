@@ -76,7 +76,7 @@ new #[Layout('components.layouts.app')] #[Title('Games')] class extends Componen
         <div class="flex justify-between items-center mb-8">
             <h1 class="text-3xl font-bold">Games</h1>
             <a href="{{ route('games.create') }}"
-               class="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg font-semibold transition">
+               class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold transition">
                 + New Game
             </a>
         </div>
@@ -90,7 +90,7 @@ new #[Layout('components.layouts.app')] #[Title('Games')] class extends Componen
         @if($games->isEmpty())
             <div class="bg-slate-800 rounded-xl p-12 text-center">
                 <p class="text-slate-400 text-lg mb-4">No games yet.</p>
-                <a href="{{ route('games.create') }}" class="text-red-400 hover:text-red-300">
+                <a href="{{ route('games.create') }}" class="text-blue-400 hover:text-blue-300">
                     Create your first game
                 </a>
             </div>
