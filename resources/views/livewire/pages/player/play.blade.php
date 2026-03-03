@@ -412,7 +412,7 @@ new #[Layout('components.layouts.app')] class extends Component {
             <!-- Lobby - Waiting for game to start -->
             <div class="text-center py-12">
                 <h1 class="text-4xl font-title mb-2">
-                    <span class="text-white">FRIC</span><span class="text-red-500">TION</span>
+                    <span class="inline-flex items-baseline"><span class="text-white">FRIC</span><span class="text-red-500 ml-[0.04em]">TION</span></span>
                 </h1>
                 <p class="text-slate-400 mb-8">You're in!</p>
 

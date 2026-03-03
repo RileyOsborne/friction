@@ -3,7 +3,7 @@
         <div class="w-full max-w-sm">
             <div class="text-center mb-8">
                 <h1 class="text-5xl font-title tracking-tight">
-                    <span class="text-white">FRIC</span><span class="text-red-500">TION</span>
+                    <span class="inline-flex items-baseline"><span class="text-white">FRIC</span><span class="text-red-500 ml-[0.04em]">TION</span></span>
                 </h1>
                 <p class="text-slate-400 mt-2">Enter the game code to join</p>
             </div>

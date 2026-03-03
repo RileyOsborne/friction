@@ -3,7 +3,7 @@
         <div class="text-center max-w-2xl mx-auto px-8 animate-fade-in">
             <!-- Friction Logo -->
             <h1 class="text-8xl font-title mb-8">
-                <span class="text-white">FRIC</span><span class="text-red-500">TION</span>
+                <span class="inline-flex items-baseline"><span class="text-white">FRIC</span><span class="text-red-500 ml-[0.04em]">TION</span></span>
             </h1>
 
             <!-- Icon -->

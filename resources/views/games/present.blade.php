@@ -24,7 +24,7 @@
         <!-- Rules Slide -->
         <div id="slide-rules" class="hidden w-full max-w-5xl mx-auto px-8">
             <div class="animate-fade-in">
-                <h1 class="text-5xl font-bold mb-8 text-center">How to Play <span class="text-6xl font-title"><span class="text-white">FRIC</span><span class="text-red-500">TION</span></span></h1>
+                <h1 class="text-5xl font-bold mb-8 text-center">How to Play <span class="text-6xl font-title"><span class="inline-flex items-baseline"><span class="text-white">FRIC</span><span class="text-red-500 ml-[0.04em]">TION</span></span></span></h1>
 
                 <!-- The Goal -->
                 <div class="bg-slate-800 rounded-xl p-6 border border-slate-700 mb-8">
@@ -176,7 +176,7 @@
                 <!-- Title -->
                 <div class="text-center mb-16 text-white">
                     <h1 class="text-[12rem] font-title mb-4 tracking-tighter leading-none">
-                        <span class="text-white">FRIC</span><span class="text-red-500">TION</span>
+                        <span class="inline-flex items-baseline"><span class="text-white">FRIC</span><span class="text-red-500 ml-[0.04em]">TION</span></span>
                     </h1>
                     <p class="text-5xl text-white/40 uppercase tracking-[0.5em] font-light">Join the game!</p>
                 </div>

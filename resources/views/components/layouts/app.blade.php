@@ -33,7 +33,7 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between h-16">
                 <div class="flex items-center space-x-8">
-                    <a href="/" class="text-2xl font-title"><span class="text-white">FRIC</span><span class="text-red-500">TION</span></a>
+                    <a href="/" class="text-2xl font-title"><span class="inline-flex items-baseline"><span class="text-white">FRIC</span><span class="text-red-500 ml-[0.04em]">TION</span></span></a>
                     <a href="{{ route('games.index') }}" class="text-slate-300 hover:text-white transition">Games</a>
                     <a href="{{ route('categories.index') }}" class="text-slate-300 hover:text-white transition">Categories</a>
                     <a href="{{ route('rules') }}" class="text-slate-300 hover:text-white transition">Rules</a>

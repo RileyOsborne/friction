@@ -10,7 +10,7 @@ new #[Layout('components.layouts.app')] #[Title('Rules')] class extends Componen
 
 <div>
     <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <h1 class="text-4xl font-bold mb-8 text-center">How to Play <span class="font-title"><span class="text-white">FRIC</span><span class="text-red-500">TION</span></span></h1>
+        <h1 class="text-4xl font-bold mb-8 text-center">How to Play <span class="font-title"><span class="inline-flex items-baseline"><span class="text-white">FRIC</span><span class="text-red-500 ml-[0.04em]">TION</span></span></span></h1>
 
         <!-- The Goal -->
         <div class="bg-slate-800 rounded-xl p-6 border border-slate-700 mb-8">
