@@ -9,13 +9,21 @@ use App\Exceptions\InvalidStateTransitionException;
 use App\Models\Game;
 use App\Models\Round;
 use App\Models\Category;
+use App\Services\AnswerMatcher;
+use App\Services\ScoringService;
+use App\DTOs\GameStateDTO;
 
 class GameStateMachine
 {
+    protected AnswerMatcher $matcher;
+    protected ScoringService $scorer;
+
     public function __construct(
         protected Game $game
     ) {
         $this->game->load(['players', 'rounds.category.answers', 'rounds.playerAnswers.player', 'rounds.playerAnswers.answer']);
+        $this->matcher = new AnswerMatcher();
+        $this->scorer = new ScoringService();
     }
 
     /**
@@ -174,7 +182,7 @@ class GameStateMachine
         if (!$round) return;
 
         $this->transitionRound($round, RoundStatus::Scoring);
-        $this->recalculateAllScores();
+        $this->scorer->recalculateScores($this->game);
         $this->broadcast();
     }
 
@@ -368,16 +376,11 @@ class GameStateMachine
             ->where('player_id', $playerId)
             ->delete();
 
-        // Find matching answer using fuzzy matching
-        $answer = $this->findMatchingAnswer($answerText);
+        // Find matching answer using the matcher service
+        $answer = $this->matcher->match($answerText, $round->category->answers);
 
-        // If match found, use its points; otherwise it's "not on list"
-        $points = $answer ? $answer->points : $this->game->not_on_list_penalty;
-
-        // Apply double if selected and available
-        if ($useDouble && $player->canUseDouble()) {
-            $points *= $this->game->double_multiplier;
-        }
+        // Calculate points using scoring service
+        $points = $this->scorer->calculatePoints($answer?->points, $this->game, $useDouble, $player);
 
         // Create player answer record
         \App\Models\PlayerAnswer::create([
@@ -390,113 +393,10 @@ class GameStateMachine
         ]);
 
         $this->game->refresh();
-        $this->recalculateAllScores();
+        $this->scorer->recalculateScores($this->game);
         
         // Final state refresh and turn advancement
         $this->advanceTurn();
-    }
-
-    /**
-     * Find a matching answer using fuzzy matching.
-     */
-    public function findMatchingAnswer(string $input): ?\App\Models\Answer
-    {
-        $round = $this->getCurrentRound();
-        if (!$round) return null;
-
-        $input = trim($input);
-        $inputLower = strtolower($input);
-        $inputNormalized = $this->normalizeForMatching($input);
-
-        // First try exact match against full text (case-insensitive)
-        foreach ($round->category->answers as $answer) {
-            if (strtolower($answer->text) === $inputLower) {
-                return $answer;
-            }
-        }
-
-        // Try exact match against display_text (for geo answers)
-        foreach ($round->category->answers as $answer) {
-            if (strtolower($answer->display_text) === $inputLower) {
-                return $answer;
-            }
-        }
-
-        // Try normalized match against both text and display_text
-        foreach ($round->category->answers as $answer) {
-            $answerNormalized = $this->normalizeForMatching($answer->text);
-            $displayNormalized = $this->normalizeForMatching($answer->display_text);
-
-            if ($answerNormalized === $inputNormalized || $displayNormalized === $inputNormalized) {
-                return $answer;
-            }
-        }
-
-        // Try containment match (input contains answer or answer contains input)
-        foreach ($round->category->answers as $answer) {
-            $answerNormalized = $this->normalizeForMatching($answer->text);
-            $displayNormalized = $this->normalizeForMatching($answer->display_text);
-
-            foreach ([$answerNormalized, $displayNormalized] as $targetNormalized) {
-                if (str_contains($inputNormalized, $targetNormalized) || str_contains($targetNormalized, $inputNormalized)) {
-                    $shorter = strlen($inputNormalized) < strlen($targetNormalized) ? $inputNormalized : $targetNormalized;
-                    if (strlen($shorter) >= 4) {
-                        return $answer;
-                    }
-                }
-            }
-        }
-
-        // Try similarity match using Levenshtein distance
-        $bestMatch = null;
-        $bestScore = PHP_INT_MAX;
-
-        foreach ($round->category->answers as $answer) {
-            foreach ([$answer->text, $answer->display_text] as $target) {
-                $targetNormalized = $this->normalizeForMatching($target);
-                $distance = levenshtein($inputNormalized, $targetNormalized);
-                $maxDistance = strlen($targetNormalized) > 5 ? 2 : 1;
-
-                if ($distance <= $maxDistance && $distance < $bestScore) {
-                    $bestScore = $distance;
-                    $bestMatch = $answer;
-                }
-            }
-        }
-
-        return $bestMatch;
-    }
-
-    /**
-     * Normalize a string for matching.
-     */
-    private function normalizeForMatching(string $text): string
-    {
-        $text = strtolower(trim($text));
-        $articles = ['the ', 'a ', 'an ', 'el ', 'la ', 'los ', 'las ', 'le ', 'les ', 'der ', 'die ', 'das '];
-        foreach ($articles as $article) {
-            if (str_starts_with($text, $article)) {
-                $text = substr($text, strlen($article));
-                break;
-            }
-        }
-        $text = preg_replace('/[^\w\s]/', '', $text);
-        $text = preg_replace('/\s+/', ' ', $text);
-        return trim($text);
-    }
-
-    /**
-     * Recalculate all player scores from their answers.
-     */
-    public function recalculateAllScores(): void
-    {
-        foreach ($this->game->players as $player) {
-            $total = $player->playerAnswers()
-                ->whereHas('round', fn($q) => $q->where('game_id', $this->game->id))
-                ->sum('points_awarded');
-            $player->update(['total_score' => $total]);
-        }
-        $this->game->refresh();
     }
 
     /**
@@ -504,109 +404,11 @@ class GameStateMachine
      */
     public function buildState(): array
     {
-        $round = $this->getCurrentRound();
-
-        // Get revealed answers data
-        $revealedAnswersData = [];
-        $collectedAnswers = [];
-        $categoryTitle = null;
-        $categoryDescription = null;
-
-        if ($round) {
-            $categoryTitle = $round->category->title;
-            $categoryDescription = $round->category->description;
-
-            $answers = $round->category->answers->sortBy('position');
-            $revealedCount = $round->current_slide;
-
-            foreach ($answers as $answer) {
-                if ($answer->position <= $revealedCount) {
-                    $playersWithAnswer = $round->playerAnswers
-                        ->where('answer_id', $answer->id)
-                        ->map(fn($pa) => [
-                            'id' => $pa->player_id,
-                            'name' => $pa->player->name,
-                            'color' => $pa->player->color,
-                            'doubled' => $pa->was_doubled,
-                        ])
-                        ->values()
-                        ->toArray();
-
-                    $revealedAnswersData[] = [
-                        'position' => $answer->position,
-                        'text' => $answer->display_text,
-                        'stat' => $answer->stat,
-                        'points' => $answer->points,
-                        'is_friction' => $answer->is_friction,
-                        'players' => $playersWithAnswer,
-                    ];
-                }
-            }
-
-            // Collected answers for display during collecting phase
-            foreach ($round->playerAnswers as $pa) {
-                $collectedAnswers[] = [
-                    'playerId' => $pa->player_id,
-                    'playerName' => $pa->player->name,
-                    'playerColor' => $pa->player->color,
-                    'answerText' => $pa->input_text ?? ($pa->answer?->text ?? 'Not on list'),
-                    'isOnList' => $pa->answer_id !== null,
-                ];
-            }
-        }
-
-        // Get turn order for broadcasting
-        $turnOrder = $this->game->getTurnOrderForRound($this->game->current_round);
-        $turnOrderData = collect($turnOrder)->filter(fn($p) => $p->isActive())->map(fn($p) => [
-            'id' => $p->id,
-            'name' => $p->name,
-            'color' => $p->color,
-        ])->values()->toArray();
-
-        // Get current turn info (derived from submitted answers)
-        $turnInfo = $this->getCurrentTurnInfo();
-
-        return [
-            'gameId' => $this->game->id,
-            'showRules' => (bool) $this->game->show_rules,
-            'currentRound' => $this->game->current_round,
-            'roundStatus' => $round?->status,
-            'currentSlide' => $round?->current_slide ?? 0,
-            'gameStatus' => $this->game->status,
-            'joinCode' => $this->game->join_code,
-            'playerCount' => $this->game->player_count,
-            'revealedAnswers' => $revealedAnswersData,
-            'collectedAnswers' => $collectedAnswers,
-            'turnOrder' => $turnOrderData,
-            'timerRunning' => (bool) $this->game->timer_running,
-            'timerStartedAt' => $this->game->timer_started_at?->timestamp,
-            'thinkingTime' => $this->game->thinking_time,
-            'currentTurnPlayerId' => $turnInfo['currentPlayer']?->id,
-            'currentTurnPlayerName' => $turnInfo['currentPlayer']?->name,
-            'currentTurnPlayerColor' => $turnInfo['currentPlayer']?->color,
-            'currentTurnIndex' => $turnInfo['currentTurnIndex'],
-            'timerMode' => $turnInfo['timerMode'], // 'countdown' or 'countup'
-            'allAnswered' => $turnInfo['allAnswered'],
-            'categoryTitle' => $categoryTitle,
-            'categoryDescription' => $categoryDescription,
-            'players' => $this->game->players->filter(fn($p) => $p->isActive())->map(fn($p) => [
-                'id' => $p->id,
-                'name' => $p->name,
-                'color' => $p->color,
-                'total_score' => $p->total_score,
-                'double_used' => $p->double_used,
-                'doubles_remaining' => $p->doublesRemaining(),
-            ])->values()->toArray(),
-            // Game configuration for views
-            'config' => [
-                'topAnswersCount' => $this->game->top_answers_count,
-                'frictionPenalty' => $this->game->friction_penalty,
-                'notOnListPenalty' => $this->game->not_on_list_penalty,
-                'doubleMultiplier' => $this->game->double_multiplier,
-                'doublesPerPlayer' => $this->game->doubles_per_player,
-                'maxAnswersPerCategory' => $this->game->max_answers_per_category,
-            ],
-        ];
+        return GameStateDTO::fromModel(
+            $this->game,
+            $this->getCurrentRound(),
+            $this->getCurrentTurnInfo()
+        )->toArray();
     }
 
     /**

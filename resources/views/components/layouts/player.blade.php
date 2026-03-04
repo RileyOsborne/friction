@@ -14,6 +14,7 @@
 
     <!-- Styles & Scripts -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @livewireStyles
     
     <style>
         .font-title { font-family: 'Saira Stencil One', cursive; }
@@ -22,5 +23,6 @@
 </head>
 <body class="min-h-screen bg-slate-950 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white antialiased overflow-x-hidden selection:bg-blue-500/30">
     {{ $slot }}
+    @livewireScripts
 </body>
 </html>

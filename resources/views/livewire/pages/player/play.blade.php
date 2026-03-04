@@ -157,7 +157,11 @@ new #[Layout('components.layouts.player')] class extends Component {
 
             if ($existingAnswer) {
                 $this->hasSubmitted = true;
-                $this->submittedAnswer = $existingAnswer->input_text ?? ($existingAnswer->answer?->text ?? 'Not on list');
+                // Prefer the matched answer display text, then raw input
+                $this->submittedAnswer = $existingAnswer->answer?->display_text 
+                    ?? $existingAnswer->answer?->text 
+                    ?? $existingAnswer->input_text;
+                
                 $this->activeRoundId = $currentRound->id;
             } else {
                 $this->hasSubmitted = false;
@@ -182,33 +186,36 @@ new #[Layout('components.layouts.player')] class extends Component {
             return;
         }
 
-        \Illuminate\Support\Facades\Log::info('Player submitting answer', [
-            'player_id' => $this->player->id,
-            'answer' => $this->answerText,
-            'game_id' => $this->game->id
-        ]);
+        try {
+            $answerToSubmit = trim($this->answerText);
 
-        // Save directly to DB via state machine
-        $this->getStateMachine()->submitPlayerAnswer(
-            $this->player->id,
-            trim($this->answerText),
-            $this->useDouble && $this->player->canUseDouble()
-        );
+            // Save directly to DB via state machine
+            $this->getStateMachine()->submitPlayerAnswer(
+                $this->player->id,
+                $answerToSubmit,
+                $this->useDouble && $this->player->canUseDouble()
+            );
 
-        // Broadcast the answer submission to GM (now as a signal to refresh)
-        event(new PlayerAnswerSubmitted(
-            $this->game,
-            $this->player,
-            trim($this->answerText),
-            $this->useDouble && $this->player->canUseDouble()
-        ));
+            // Broadcast the answer submission to GM
+            event(new PlayerAnswerSubmitted(
+                $this->game,
+                $this->player,
+                $answerToSubmit,
+                $this->useDouble && $this->player->canUseDouble()
+            ));
 
-        $this->submittedAnswer = trim($this->answerText);
-        $this->hasSubmitted = true;
-        $this->answerText = '';
-        
-        // Refresh local state immediately
-        $this->loadCurrentState();
+            $this->submittedAnswer = $answerToSubmit;
+            $this->hasSubmitted = true;
+            $this->answerText = '';
+            
+            // Refresh local state immediately
+            $this->loadCurrentState();
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('Player submission failed', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+        }
     }
 
     private function getStateMachine(): GameStateMachine
@@ -247,30 +254,8 @@ new #[Layout('components.layouts.player')] class extends Component {
         ];
     }
 }; ?>
-<div>
-    @php
-        /**
-         * Helper: Calculate contrast color for text (black or white)
-         * PHP implementation for use inside Blade @php blocks
-         */
-        if (!function_exists('getContrastColor')) {
-            function getContrastColor($hexcolor) {
-                if (!$hexcolor) return 'white';
-                $hexcolor = str_replace('#', '', $hexcolor);
-                if (strlen($hexcolor) === 3) {
-                    $hexcolor = $hexcolor[0] . $hexcolor[0] . $hexcolor[1] . $hexcolor[1] . $hexcolor[2] . $hexcolor[2];
-                }
-                $r = hexdec(substr($hexcolor, 0, 2));
-                $g = hexdec(substr($hexcolor, 2, 2));
-                $b = hexdec(substr($hexcolor, 4, 2));
-                $yiq = (($r * 299) + ($g * 587) + ($b * 114)) / 1000;
-                return ($yiq >= 128) ? 'black' : 'white';
-            }
-        }
-    @endphp
 
 <div class="min-h-screen flex flex-col text-white"
-
      @if(!$player->isRemoved())
      wire:poll.2s="loadCurrentState"
      @endif
@@ -281,17 +266,19 @@ new #[Layout('components.layouts.player')] class extends Component {
         timerMode: @entangle('timerMode'),
         currentTurnPlayerId: @entangle('currentTurnPlayerId'),
         allAnswered: @entangle('allAnswered'),
+        answerText: @entangle('answerText'),
         timerSeconds: 0,
         heartbeatInterval: null,
         timerInterval: null,
         playerId: '{{ $player->id }}',
         isRemoved: {{ $player->isRemoved() ? 'true' : 'false' }},
 
-        get isMyTurn() {
-            return this.currentTurnPlayerId === this.playerId;
-        },
-
+        // Event listener moved to Alpine init
         init() {
+            window.addEventListener('answer-submitted', () => {
+                this.answerText = '';
+            });
+
             // Don't run heartbeats if player is removed
             if (this.isRemoved) return;
 
@@ -649,7 +636,8 @@ new #[Layout('components.layouts.player')] class extends Component {
                             <div class="space-y-3 md:space-y-6">
                                 <div class="relative group">
                                     <input type="text"
-                                           wire:model="answerText"
+                                           wire:model.live="answerText"
+                                           x-model="answerText"
                                            wire:keydown.enter="submitAnswer"
                                            placeholder="TYPE YOUR ANSWER..."
                                            autofocus
@@ -670,8 +658,8 @@ new #[Layout('components.layouts.player')] class extends Component {
                                     </label>
                                 @endif
 
-                                <button wire:click="submitAnswer"
-                                        @disabled(empty(trim($answerText)))
+                                <button @click="$wire.submitAnswer()"
+                                        :disabled="!answerText || answerText.trim().length === 0"
                                         class="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-30 disabled:grayscale disabled:cursor-not-allowed
                                                py-5 md:py-8 rounded-2xl md:rounded-[2rem] font-black text-xl md:text-3xl uppercase tracking-widest transition-all shadow-xl border-b-4 md:border-b-8 border-blue-800 active:translate-y-1 active:border-b-0">
                                     Submit Answer

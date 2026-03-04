@@ -47,9 +47,11 @@ new #[Layout('components.layouts.app')] #[Title('Game Master Control')] class ex
     {
         \Illuminate\Support\Facades\Log::info('Answer signal received in GM Control', $data);
         
-        // Answer is already saved by the player device
-        // Just refresh our local view and broadcast updated state to presentation
+        // Refresh everything to ensure we have the latest state
         $this->game->refresh();
+        $this->game->load(['players', 'rounds']);
+        $this->getStateMachine()->refresh();
+        
         $this->loadCurrentState();
         $this->broadcastState();
     }
@@ -58,8 +60,10 @@ new #[Layout('components.layouts.app')] #[Title('Game Master Control')] class ex
     public function handlePlayerJoined(array $data): void
     {
         // Player joined or reconnected - refresh and broadcast
-        $this->game->load('players'); // Force reload players relationship
+        $this->game->refresh();
+        $this->game->load(['players', 'rounds']);
         $this->getStateMachine()->refresh();
+        
         $this->loadCurrentState();
         $this->broadcastState();
     }
@@ -68,8 +72,11 @@ new #[Layout('components.layouts.app')] #[Title('Game Master Control')] class ex
     public function handlePlayerLeft(array $data): void
     {
         // Player disconnected - refresh and broadcast
-        $this->game->load('players'); // Force reload players relationship
+        $this->game->refresh();
+        $this->game->load(['players', 'rounds']);
         $this->getStateMachine()->refresh();
+        
+        $this->loadCurrentState();
         $this->broadcastState();
     }
 
@@ -82,10 +89,15 @@ new #[Layout('components.layouts.app')] #[Title('Game Master Control')] class ex
     {
         // Force fresh data from database
         $this->game->refresh();
-        $this->game->load('players');
+        $this->game->load(['players', 'rounds']);
 
-        // Refresh state machine and broadcast to presentation view
+        // Refresh state machine
         $this->getStateMachine()->refresh();
+        
+        // Ensure local GM inputs are updated if answers came in
+        $this->loadCurrentState();
+        
+        // Broadcast to presentation view
         $this->broadcastState();
     }
 
@@ -124,7 +136,9 @@ new #[Layout('components.layouts.app')] #[Title('Game Master Control')] class ex
             foreach ($this->game->players as $player) {
                 $existing = $this->currentRound->playerAnswers->where('player_id', $player->id)->first();
                 if ($existing) {
-                    $this->playerAnswers[$player->id] = $existing->input_text ?? ($existing->answer?->text ?? '__not_on_list__');
+                    $this->playerAnswers[$player->id] = $existing->answer?->display_text 
+                        ?? $existing->answer?->text 
+                        ?? $existing->input_text;
                 } else {
                     $this->playerAnswers[$player->id] = '';
                 }
