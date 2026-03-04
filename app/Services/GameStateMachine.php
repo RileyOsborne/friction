@@ -295,6 +295,9 @@ class GameStateMachine
             ];
         }
 
+        // Force reload the relationship to ensure we have the latest answers
+        $round->load('playerAnswers');
+
         $turnOrder = collect($this->game->getTurnOrderForRound($this->game->current_round))
             ->filter(fn($p) => $p->isActive())
             ->values();
@@ -331,6 +334,8 @@ class GameStateMachine
      */
     public function advanceTurn(): void
     {
+        // Refresh the whole game and current round to get latest submissions
+        $this->refresh();
         $turnInfo = $this->getCurrentTurnInfo();
 
         if ($turnInfo['allAnswered']) {
@@ -345,6 +350,139 @@ class GameStateMachine
             $this->game->refresh();
         }
         // For countdown mode (first player), keep existing timer running
+    }
+
+    /**
+     * Process and save a player's answer submission.
+     */
+    public function submitPlayerAnswer(string $playerId, string $answerText, bool $useDouble = false): void
+    {
+        $round = $this->getCurrentRound();
+        if (!$round) return;
+
+        $player = \App\Models\Player::find($playerId);
+        if (!$player) return;
+
+        // Delete any existing answer for this player in this round
+        \App\Models\PlayerAnswer::where('round_id', $round->id)
+            ->where('player_id', $playerId)
+            ->delete();
+
+        // Find matching answer using fuzzy matching
+        $answer = $this->findMatchingAnswer($answerText);
+
+        // If match found, use its points; otherwise it's "not on list"
+        $points = $answer ? $answer->points : $this->game->not_on_list_penalty;
+
+        // Apply double if selected and available
+        if ($useDouble && $player->canUseDouble()) {
+            $points *= $this->game->double_multiplier;
+        }
+
+        // Create player answer record
+        \App\Models\PlayerAnswer::create([
+            'round_id' => $round->id,
+            'player_id' => $playerId,
+            'answer_id' => $answer?->id,
+            'input_text' => $answerText,
+            'points_awarded' => $points,
+            'was_doubled' => $useDouble && $player->canUseDouble(),
+        ]);
+
+        $this->game->refresh();
+        $this->recalculateAllScores();
+        
+        // Final state refresh and turn advancement
+        $this->advanceTurn();
+    }
+
+    /**
+     * Find a matching answer using fuzzy matching.
+     */
+    public function findMatchingAnswer(string $input): ?\App\Models\Answer
+    {
+        $round = $this->getCurrentRound();
+        if (!$round) return null;
+
+        $input = trim($input);
+        $inputLower = strtolower($input);
+        $inputNormalized = $this->normalizeForMatching($input);
+
+        // First try exact match against full text (case-insensitive)
+        foreach ($round->category->answers as $answer) {
+            if (strtolower($answer->text) === $inputLower) {
+                return $answer;
+            }
+        }
+
+        // Try exact match against display_text (for geo answers)
+        foreach ($round->category->answers as $answer) {
+            if (strtolower($answer->display_text) === $inputLower) {
+                return $answer;
+            }
+        }
+
+        // Try normalized match against both text and display_text
+        foreach ($round->category->answers as $answer) {
+            $answerNormalized = $this->normalizeForMatching($answer->text);
+            $displayNormalized = $this->normalizeForMatching($answer->display_text);
+
+            if ($answerNormalized === $inputNormalized || $displayNormalized === $inputNormalized) {
+                return $answer;
+            }
+        }
+
+        // Try containment match (input contains answer or answer contains input)
+        foreach ($round->category->answers as $answer) {
+            $answerNormalized = $this->normalizeForMatching($answer->text);
+            $displayNormalized = $this->normalizeForMatching($answer->display_text);
+
+            foreach ([$answerNormalized, $displayNormalized] as $targetNormalized) {
+                if (str_contains($inputNormalized, $targetNormalized) || str_contains($targetNormalized, $inputNormalized)) {
+                    $shorter = strlen($inputNormalized) < strlen($targetNormalized) ? $inputNormalized : $targetNormalized;
+                    if (strlen($shorter) >= 4) {
+                        return $answer;
+                    }
+                }
+            }
+        }
+
+        // Try similarity match using Levenshtein distance
+        $bestMatch = null;
+        $bestScore = PHP_INT_MAX;
+
+        foreach ($round->category->answers as $answer) {
+            foreach ([$answer->text, $answer->display_text] as $target) {
+                $targetNormalized = $this->normalizeForMatching($target);
+                $distance = levenshtein($inputNormalized, $targetNormalized);
+                $maxDistance = strlen($targetNormalized) > 5 ? 2 : 1;
+
+                if ($distance <= $maxDistance && $distance < $bestScore) {
+                    $bestScore = $distance;
+                    $bestMatch = $answer;
+                }
+            }
+        }
+
+        return $bestMatch;
+    }
+
+    /**
+     * Normalize a string for matching.
+     */
+    private function normalizeForMatching(string $text): string
+    {
+        $text = strtolower(trim($text));
+        $articles = ['the ', 'a ', 'an ', 'el ', 'la ', 'los ', 'las ', 'le ', 'les ', 'der ', 'die ', 'das '];
+        foreach ($articles as $article) {
+            if (str_starts_with($text, $article)) {
+                $text = substr($text, strlen($article));
+                break;
+            }
+        }
+        $text = preg_replace('/[^\w\s]/', '', $text);
+        $text = preg_replace('/\s+/', ' ', $text);
+        return trim($text);
     }
 
     /**

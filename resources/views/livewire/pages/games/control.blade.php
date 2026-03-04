@@ -45,17 +45,13 @@ new #[Layout('components.layouts.app')] #[Title('Game Master Control')] class ex
     #[On('echo:game.{game.id},player.answer.submitted')]
     public function handlePlayerAnswer(array $data): void
     {
-        // Player submitted an answer from their device
-        $playerId = $data['playerId'];
-        $answerText = $data['answerText'];
-        $useDouble = $data['useDouble'] ?? false;
-
-        // Store in our local state
-        $this->playerAnswers[$playerId] = $answerText;
-        $this->playerDoubles[$playerId] = $useDouble;
-
-        // Auto-submit the answer
-        $this->submitPlayerAnswer($playerId);
+        \Illuminate\Support\Facades\Log::info('Answer signal received in GM Control', $data);
+        
+        // Answer is already saved by the player device
+        // Just refresh our local view and broadcast updated state to presentation
+        $this->game->refresh();
+        $this->loadCurrentState();
+        $this->broadcastState();
     }
 
     #[On('echo:game.{game.id},player.joined')]
@@ -127,10 +123,8 @@ new #[Layout('components.layouts.app')] #[Title('Game Master Control')] class ex
             // Initialize player answers array
             foreach ($this->game->players as $player) {
                 $existing = $this->currentRound->playerAnswers->where('player_id', $player->id)->first();
-                if ($existing && $existing->answer) {
-                    $this->playerAnswers[$player->id] = $existing->answer->text;
-                } elseif ($existing && !$existing->answer_id) {
-                    $this->playerAnswers[$player->id] = '__not_on_list__';
+                if ($existing) {
+                    $this->playerAnswers[$player->id] = $existing->input_text ?? ($existing->answer?->text ?? '__not_on_list__');
                 } else {
                     $this->playerAnswers[$player->id] = '';
                 }
@@ -202,106 +196,6 @@ new #[Layout('components.layouts.app')] #[Title('Game Master Control')] class ex
         return true;
     }
 
-    /**
-     * Find a matching answer using fuzzy matching.
-     * Handles cases like "El Fuego" matching "Fuego" or "The Beatles" matching "Beatles".
-     */
-    public function findMatchingAnswer(string $input): ?Answer
-    {
-        if (!$this->currentRound) return null;
-
-        $input = trim($input);
-        $inputLower = strtolower($input);
-        $inputNormalized = $this->normalizeForMatching($input);
-
-        // First try exact match against full text (case-insensitive)
-        foreach ($this->currentRound->category->answers as $answer) {
-            if (strtolower($answer->text) === $inputLower) {
-                return $answer;
-            }
-        }
-
-        // Try exact match against display_text (for geo answers)
-        foreach ($this->currentRound->category->answers as $answer) {
-            if (strtolower($answer->display_text) === $inputLower) {
-                return $answer;
-            }
-        }
-
-        // Try normalized match against both text and display_text
-        foreach ($this->currentRound->category->answers as $answer) {
-            $answerNormalized = $this->normalizeForMatching($answer->text);
-            $displayNormalized = $this->normalizeForMatching($answer->display_text);
-
-            if ($answerNormalized === $inputNormalized || $displayNormalized === $inputNormalized) {
-                return $answer;
-            }
-        }
-
-        // Try containment match (input contains answer or answer contains input)
-        foreach ($this->currentRound->category->answers as $answer) {
-            $answerNormalized = $this->normalizeForMatching($answer->text);
-            $displayNormalized = $this->normalizeForMatching($answer->display_text);
-
-            // Check if one is contained in the other (for "El Fuego" vs "Fuego")
-            foreach ([$answerNormalized, $displayNormalized] as $targetNormalized) {
-                if (str_contains($inputNormalized, $targetNormalized) || str_contains($targetNormalized, $inputNormalized)) {
-                    // Only match if the shorter string is at least 4 chars to avoid false positives
-                    $shorter = strlen($inputNormalized) < strlen($targetNormalized) ? $inputNormalized : $targetNormalized;
-                    if (strlen($shorter) >= 4) {
-                        return $answer;
-                    }
-                }
-            }
-        }
-
-        // Try similarity match using Levenshtein distance
-        $bestMatch = null;
-        $bestScore = PHP_INT_MAX;
-
-        foreach ($this->currentRound->category->answers as $answer) {
-            foreach ([$answer->text, $answer->display_text] as $target) {
-                $targetNormalized = $this->normalizeForMatching($target);
-
-                // Calculate Levenshtein distance
-                $distance = levenshtein($inputNormalized, $targetNormalized);
-
-                // Allow max 2 character difference for strings > 5 chars, or 1 for shorter
-                $maxDistance = strlen($targetNormalized) > 5 ? 2 : 1;
-
-                if ($distance <= $maxDistance && $distance < $bestScore) {
-                    $bestScore = $distance;
-                    $bestMatch = $answer;
-                }
-            }
-        }
-
-        return $bestMatch;
-    }
-
-    /**
-     * Normalize a string for matching by removing articles, punctuation, and extra spaces.
-     */
-    private function normalizeForMatching(string $text): string
-    {
-        $text = strtolower(trim($text));
-
-        // Remove common articles/prefixes in various languages
-        $articles = ['the ', 'a ', 'an ', 'el ', 'la ', 'los ', 'las ', 'le ', 'les ', 'der ', 'die ', 'das '];
-        foreach ($articles as $article) {
-            if (str_starts_with($text, $article)) {
-                $text = substr($text, strlen($article));
-                break;
-            }
-        }
-
-        // Remove punctuation and extra spaces
-        $text = preg_replace('/[^\w\s]/', '', $text);
-        $text = preg_replace('/\s+/', ' ', $text);
-
-        return trim($text);
-    }
-
     public function dismissRules(): void
     {
         $this->getStateMachine()->dismissRules();
@@ -356,47 +250,19 @@ new #[Layout('components.layouts.app')] #[Title('Game Master Control')] class ex
         $answerText = trim($this->playerAnswers[$playerId] ?? '');
         if (empty($answerText)) return;
 
-        $player = Player::find($playerId);
-        if (!$player) return;
+        // Use the state machine to process the answer
+        $this->getStateMachine()->submitPlayerAnswer(
+            $playerId,
+            $answerText,
+            $this->playerDoubles[$playerId] ?? false
+        );
 
-        // Delete any existing answer for this player in this round
-        PlayerAnswer::where('round_id', $this->currentRound->id)
-            ->where('player_id', $playerId)
-            ->delete();
-
-        // Find matching answer using fuzzy matching
-        $answer = $this->findMatchingAnswer($answerText);
-
-        // If match found, use its points; otherwise it's "not on list"
-        $points = $answer ? $answer->points : $this->game->not_on_list_penalty;
-
-        // Apply double if selected
-        $wasDoubled = $this->playerDoubles[$playerId] ?? false;
-        if ($wasDoubled && $player->canUseDouble()) {
-            $points *= $this->game->double_multiplier;
-        }
-
-        // Create player answer record
-        PlayerAnswer::create([
-            'round_id' => $this->currentRound->id,
-            'player_id' => $playerId,
-            'answer_id' => $answer?->id,
-            'input_text' => $answerText,
-            'points_awarded' => $points,
-            'was_doubled' => $wasDoubled,
-        ]);
-
-        // Reset double for this player
+        // Reset local state
         $this->playerDoubles[$playerId] = false;
+        $this->playerAnswers[$playerId] = '';
 
-        $this->currentRound->refresh();
         $this->game->refresh();
-
-        // Advance turn - this resets timer for countup mode or stops it if all answered
-        $this->getStateMachine()->refresh();
-        $this->getStateMachine()->advanceTurn();
-        $this->game = $this->getStateMachine()->getGame();
-
+        $this->loadCurrentState();
         $this->broadcastState();
     }
 

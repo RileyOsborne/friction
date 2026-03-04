@@ -21,6 +21,20 @@
     @endphp
 
     <div id="presentation-container" class="min-h-screen flex flex-col items-center justify-center py-16 px-4">
+        <!-- Persistent Branding (Top) -->
+        <div class="fixed top-8 left-0 right-0 z-[100] px-12 flex justify-between items-center pointer-events-none">
+            <div class="flex items-center gap-4">
+                <span class="text-4xl font-title tracking-tighter opacity-80">
+                    <span class="inline-flex items-baseline"><span class="text-white">FRIC</span><span class="text-red-500 ml-[0.04em]">TION</span></span>
+                </span>
+            </div>
+            <div class="bg-slate-800/40 backdrop-blur-md border border-white/5 rounded-2xl px-6 py-3 flex items-center gap-4 shadow-2xl">
+                <span class="text-slate-500 font-black uppercase tracking-widest text-sm">Join at {{ request()->getHost() }}</span>
+                <span class="w-px h-4 bg-white/10"></span>
+                <span class="text-white font-mono font-black text-2xl tracking-widest" id="persistent-join-code">{{ $game->join_code }}</span>
+            </div>
+        </div>
+
         <!-- Rules Slide -->
         <div id="slide-rules" class="hidden w-full max-w-5xl mx-auto px-8">
             <div class="animate-fade-in">
