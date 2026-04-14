@@ -43,11 +43,16 @@ class StarterPackSeeder extends Seeder
             $category->answers()->delete();
 
             foreach ($catData['answers'] as $index => $answerData) {
+                $position = $index + 1;
+                $isFriction = $position > 10;
+                
                 Answer::create([
                     'category_id' => $category->id,
                     'text' => $answerData['text'],
                     'stat' => $answerData['stat'] ?? null,
-                    'position' => $index + 1,
+                    'position' => $position,
+                    'is_friction' => $isFriction,
+                    'points' => $isFriction ? -5 : $position,
                 ]);
             }
         }

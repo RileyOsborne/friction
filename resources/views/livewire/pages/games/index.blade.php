@@ -118,9 +118,9 @@ new #[Layout('components.layouts.app')] #[Title('Games')] class extends Componen
         @if($games->isEmpty())
             <div class="bg-slate-800 rounded-xl p-12 text-center">
                 <p class="text-slate-400 text-lg mb-4">No games yet.</p>
-                <a href="{{ route('games.create') }}" class="text-blue-400 hover:text-blue-300 font-medium">
+                <button wire:click="createGame" class="text-blue-400 hover:text-blue-300 font-medium">
                     Create your first game
-                </a>
+                </button>
             </div>
         @else
             <div class="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden shadow-sm">

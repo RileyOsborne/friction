@@ -13,10 +13,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string $text
  * @property string|null $stat
  * @property int $position
+ * @property int $points
+ * @property bool $is_friction
  * @property-read \App\Models\Category $category
  * @property-read string $display_text
- * @property-read int $points
- * @property-read bool $is_friction
  */
 class Answer extends Model
 {
@@ -27,10 +27,14 @@ class Answer extends Model
         'text',
         'stat',
         'position',
+        'points',
+        'is_friction',
     ];
 
     protected $casts = [
         'position' => 'integer',
+        'points' => 'integer',
+        'is_friction' => 'boolean',
     ];
 
     /**
@@ -47,23 +51,5 @@ class Answer extends Model
     public function getDisplayTextAttribute(): string
     {
         return $this->text;
-    }
-
-    /**
-     * Get the points for this answer based on its position.
-     */
-    public function getPointsAttribute(): int
-    {
-        return $this->position;
-    }
-
-    /**
-     * Determine if this answer is a friction answer.
-     */
-    public function getIsFrictionAttribute(): bool
-    {
-        // Default to anything above 10 being friction, 
-        // but this usually depends on game config.
-        return $this->position > 10;
     }
 }
