@@ -20,9 +20,12 @@ class GameLifeCycleTest extends TestCase
     {
         Event::fake();
 
-        $game = Game::factory()->create();
+        $user = \App\Models\User::factory()->create();
+        $this->actingAs($user);
+
+        $game = Game::factory()->create(['user_id' => $user->id]);
         $player = Player::factory()->create(['game_id' => $game->id]);
-        $category = Category::factory()->create();
+        $category = Category::factory()->create(['user_id' => $user->id]);
         $round = Round::factory()->create([
             'game_id' => $game->id,
             'category_id' => $category->id,
@@ -44,9 +47,12 @@ class GameLifeCycleTest extends TestCase
 
     public function test_game_reset_clears_scores_but_keeps_setup()
     {
-        $game = Game::factory()->create(['status' => 'completed', 'current_round' => 5]);
+        $user = \App\Models\User::factory()->create();
+        $this->actingAs($user);
+
+        $game = Game::factory()->create(['user_id' => $user->id, 'status' => 'completed', 'current_round' => 5]);
         $player = Player::factory()->create(['game_id' => $game->id, 'total_score' => 100, 'double_used' => true]);
-        $category = Category::factory()->create();
+        $category = Category::factory()->create(['user_id' => $user->id]);
         $round = Round::factory()->create([
             'game_id' => $game->id,
             'category_id' => $category->id,

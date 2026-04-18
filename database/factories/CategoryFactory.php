@@ -21,6 +21,7 @@ class CategoryFactory extends Factory
     public function definition(): array
     {
         return [
+            'user_id' => \App\Models\User::factory(),
             'title' => $this->faker->sentence(4),
             'description' => $this->faker->sentence,
             'topic_id' => Topic::factory(),

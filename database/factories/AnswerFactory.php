@@ -20,16 +20,18 @@ class AnswerFactory extends Factory
      */
     public function definition(): array
     {
-        $position = $this->faker->unique()->numberBetween(1, 15);
-        $isFriction = $position > 10;
-        
         return [
             'category_id' => Category::factory(),
             'text' => $this->faker->word,
             'stat' => $this->faker->numberBetween(1, 100),
-            'position' => $position,
-            'is_friction' => $isFriction,
-            'points' => $isFriction ? -5 : $position,
+            'position' => $this->faker->unique()->numberBetween(1, 15),
+            'is_friction' => function (array $attributes) {
+                return ($attributes['position'] ?? 1) > 10;
+            },
+            'points' => function (array $attributes) {
+                $pos = $attributes['position'] ?? 1;
+                return $pos > 10 ? -5 : $pos;
+            },
         ];
     }
 }

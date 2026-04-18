@@ -25,7 +25,11 @@ class GMControlTest extends TestCase
     {
         parent::setUp();
 
+        $user = \App\Models\User::factory()->create();
+        $this->actingAs($user);
+
         $this->game = Game::factory()->create([
+            'user_id' => $user->id,
             'status' => GameStatus::Playing->value,
             'current_round' => 1,
             'player_count' => 1,

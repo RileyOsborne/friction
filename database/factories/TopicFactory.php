@@ -20,6 +20,7 @@ class TopicFactory extends Factory
     public function definition(): array
     {
         return [
+            'user_id' => \App\Models\User::factory(),
             'name' => $this->faker->word,
         ];
     }

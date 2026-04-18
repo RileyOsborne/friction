@@ -20,6 +20,7 @@ class GameFactory extends Factory
     public function definition(): array
     {
         return [
+            'user_id' => \App\Models\User::factory(),
             'name' => $this->faker->sentence(3),
             'player_count' => 0,
             'status' => 'ready',
