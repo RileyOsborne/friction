@@ -9,7 +9,7 @@ use Livewire\Volt\Component;
 
 new #[Layout('components.layouts.app')] class extends Component {
     public string $name = '';
-    public string $email = '';
+    public string $username = '';
     public string $password = '';
     public string $password_confirmation = '';
 
@@ -17,13 +17,13 @@ new #[Layout('components.layouts.app')] class extends Component {
     {
         $this->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'email', 'max:255', 'unique:'.User::class],
+            'username' => ['required', 'string', 'max:255', 'unique:'.User::class],
             'password' => ['required', 'string', 'confirmed', Rules\Password::defaults()],
         ]);
 
         $user = User::create([
             'name' => $this->name,
-            'email' => $this->email,
+            'username' => $this->username,
             'password' => Hash::make($this->password),
         ]);
 
@@ -39,17 +39,17 @@ new #[Layout('components.layouts.app')] class extends Component {
 
         <form wire:submit="register" class="space-y-6">
             <div>
-                <label for="name" class="block text-sm font-bold uppercase tracking-widest text-slate-400 mb-2">Name</label>
+                <label for="name" class="block text-sm font-bold uppercase tracking-widest text-slate-400 mb-2">Display Name</label>
                 <input wire:model="name" type="text" id="name" required autofocus
                     class="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500 transition">
                 @error('name') <p class="mt-2 text-sm text-red-500">{{ $message }}</p> @enderror
             </div>
 
             <div>
-                <label for="email" class="block text-sm font-bold uppercase tracking-widest text-slate-400 mb-2">Email Address</label>
-                <input wire:model="email" type="email" id="email" required
+                <label for="username" class="block text-sm font-bold uppercase tracking-widest text-slate-400 mb-2">Username</label>
+                <input wire:model="username" type="text" id="username" required
                     class="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500 transition">
-                @error('email') <p class="mt-2 text-sm text-red-500">{{ $message }}</p> @enderror
+                @error('username') <p class="mt-2 text-sm text-red-500">{{ $message }}</p> @enderror
             </div>
 
             <div>

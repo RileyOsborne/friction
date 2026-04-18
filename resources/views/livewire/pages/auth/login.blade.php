@@ -6,20 +6,20 @@ use Livewire\Attributes\Layout;
 use Livewire\Volt\Component;
 
 new #[Layout('components.layouts.app')] class extends Component {
-    public string $email = '';
+    public string $username = '';
     public string $password = '';
     public bool $remember = false;
 
     public function login(): void
     {
         $this->validate([
-            'email' => ['required', 'string', 'email'],
+            'username' => ['required', 'string'],
             'password' => ['required', 'string'],
         ]);
 
-        if (!Auth::attempt(['email' => $this->email, 'password' => $this->password], $this->remember)) {
+        if (!Auth::attempt(['username' => $this->username, 'password' => $this->password], $this->remember)) {
             throw ValidationException::withMessages([
-                'email' => __('auth.failed'),
+                'username' => __('auth.failed'),
             ]);
         }
 
@@ -35,10 +35,10 @@ new #[Layout('components.layouts.app')] class extends Component {
 
         <form wire:submit="login" class="space-y-6">
             <div>
-                <label for="email" class="block text-sm font-bold uppercase tracking-widest text-slate-400 mb-2">Email Address</label>
-                <input wire:model="email" type="email" id="email" required autofocus
+                <label for="username" class="block text-sm font-bold uppercase tracking-widest text-slate-400 mb-2">Username</label>
+                <input wire:model="username" type="text" id="username" required autofocus
                     class="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500 transition">
-                @error('email') <p class="mt-2 text-sm text-red-500">{{ $message }}</p> @enderror
+                @error('username') <p class="mt-2 text-sm text-red-500">{{ $message }}</p> @enderror
             </div>
 
             <div>

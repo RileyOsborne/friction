@@ -20,6 +20,23 @@ class UserScopingTest extends TestCase
         $this->get(route('categories.index'))->assertRedirect(route('login'));
     }
 
+    public function test_users_can_login_with_username()
+    {
+        $user = User::factory()->create([
+            'username' => 'testuser',
+            'password' => \Illuminate\Support\Facades\Hash::make('password123'),
+        ]);
+
+        Volt::test('pages.auth.login')
+            ->set('username', 'testuser')
+            ->set('password', 'password123')
+            ->call('login')
+            ->assertHasNoErrors()
+            ->assertRedirect(route('games.index'));
+
+        $this->assertAuthenticatedAs($user);
+    }
+
     public function test_users_can_only_see_their_own_games()
     {
         $user1 = User::factory()->create();
